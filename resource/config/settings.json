@@ -1,0 +1,11 @@
+{
+    "autoConnect": false,
+    "corePath": "v2ray.exe",
+    "currentInstance": "default",
+    "instances": [
+        {
+            "tag": "default",
+            "configPath": "config.json"
+        }
+    ]
+}
