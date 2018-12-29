@@ -3,7 +3,9 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QMessageBox>
+#include <QVariant>
 #include "MainService.h"
+#include <QDebug>
 
 #define V2RAY_SYS_TRAY_ENABLED_ICON_PATH ":/icon/icons/tray_enabled.ico"
 #define V2RAY_SYS_TRAY_DISABLED_ICON_PATH ":/icon/icons/tray_disabled.ico"
@@ -11,15 +13,17 @@
 
 MainService::MainService(QWidget *parent) :
     QWidget(parent),
-    configuration(new ConfigService(this)),
+    configuration(ConfigService::getInstance(this)),
+    v2rayCore(new QProcess(this)),
     trayIcon(new QSystemTrayIcon(this)),
     mainMenu(new QMenu(this)),
-    switchAction(new QAction(this)),
-    instanceAction(new QMenu(this)),
-    configAction(new QAction(this)),
-    monitorAction(new QAction(this)),
-    aboutAction(new QAction(this)),
-    exitAction(new QAction(this))
+    switchAction(new QAction(mainMenu)),
+    workInstanceMenu(new QMenu(mainMenu)),
+    workInstanceGroup(new QActionGroup(mainMenu)),
+    configAction(new QAction(mainMenu)),
+    monitorAction(new QAction(mainMenu)),
+    aboutAction(new QAction(mainMenu)),
+    exitAction(new QAction(mainMenu))
 {
     // Start with error status flag
     setSysStatus(AppStatus::Error);
@@ -34,9 +38,17 @@ MainService::MainService(QWidget *parent) :
     // Load Configuration and flag status
     loadConfiguration();
 
+    // Binding signals and slots
+    connect(v2rayCore, &QProcess::started, this, &MainService::processStartSlot);
+    connect(v2rayCore, static_cast<void(QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished),
+            this, &MainService::processFinishSlot);
+    connect(v2rayCore, &QProcess::errorOccurred, this, &MainService::processErrorSlot);
 }
 
-MainService::~MainService() = default;
+MainService::~MainService()
+{
+
+}
 
 void MainService::setSysStatus(MainService::AppStatus status)
 {
@@ -46,23 +58,23 @@ void MainService::setSysStatus(MainService::AppStatus status)
     case AppStatus::Enabled:
         trayIcon->setIcon(QIcon(V2RAY_SYS_TRAY_ENABLED_ICON_PATH));
         trayIcon->setToolTip(tr("Enabled"));
-        switchAction->setText(tr("Connect"));
+        switchAction->setText(tr("Disonnect"));
         switchAction->setEnabled(true);
-        instanceAction->setEnabled(true);
+        workInstanceMenu->setEnabled(true);
         break;
     case AppStatus::Disabled:
         trayIcon->setIcon(QIcon(V2RAY_SYS_TRAY_DISABLED_ICON_PATH));
         trayIcon->setToolTip(tr("Disabled"));
-        switchAction->setText(tr("Disconnect"));
+        switchAction->setText(tr("Connect"));
         switchAction->setEnabled(true);
-        instanceAction->setEnabled(true);
+        workInstanceMenu->setEnabled(true);
         break;
     default:
         trayIcon->setIcon(QIcon(V2RAY_SYS_TRAY_ERROR_ICON_PATH));
         trayIcon->setToolTip(tr("Error"));
         switchAction->setText(tr("Connect"));
         switchAction->setEnabled(false);
-        instanceAction->setEnabled(false);
+        workInstanceMenu->setEnabled(false);
         break;
     }
 }
@@ -80,10 +92,11 @@ void MainService::initMainMenu()
 
     mainMenu->addSeparator();
 
-    // Instances
+    // Work instances
 
-    mainMenu->addMenu(instanceAction);
-    instanceAction->setTitle(tr("Instances"));
+    mainMenu->addMenu(workInstanceMenu);
+    workInstanceMenu->setTitle(tr("Work Instances"));
+    workInstanceGroup->setExclusive(true);
 
     mainMenu->addSeparator();
 
@@ -146,12 +159,20 @@ void MainService::loadConfiguration()
         }
         else
         {
-            // TODO Add instances to menu
-
+            // Add work instances to menu
+            loadWorkInstanceMenu();
             setSysStatus(AppStatus::Disabled);
-            if(configuration->getAutoConnect())
+            if(checkAvailable())
             {
-                switchSlot();
+                switchAction->setEnabled(true);
+                if(configuration->getAutoConnect())
+                {
+                    switchSlot();
+                }
+            }
+            else
+            {
+                switchAction->setEnabled(false);
             }
         }
     }
@@ -182,34 +203,152 @@ void MainService::loadConfiguration()
     }
 }
 
+void MainService::clearWorkInstanceMenu()
+{
+    foreach (QAction *action, workInstanceMenu->actions())
+    {
+        delete action;
+        action = nullptr;
+    }
+    workInstanceMenu->clear();
+}
+
+void MainService::loadWorkInstanceMenu()
+{
+    WorkInstanceList workInstances = configuration->getWorkInstances();
+    currentWorkInstance = nullptr;
+    QAction *configLevel = nullptr, *nameLevel = nullptr, *uniqueLevel = nullptr;
+    clearWorkInstanceMenu();
+    foreach (WorkInstance *item, workInstances)
+    {
+        QString tag = item->take(V2RAY_CONFIG_INSTANCE_TAG_KEY);
+        QString configPath = item->take(V2RAY_CONFIG_INSTANCE_CONFIG_PATH_KEY);
+        QVariant workInstanceVariant = QVariant::fromValue(item);
+        QAction *workInstanceAction = workInstanceMenu->addAction(tag);
+        workInstanceGroup->addAction(workInstanceAction);
+        workInstanceAction->setCheckable(true);
+        workInstanceAction->setToolTip(configPath);
+        workInstanceAction->setData(workInstanceVariant);
+        connect(workInstanceAction, &QAction::toggled, this, &MainService::selectWorkInstanceSlot);
+        // Get each level's default work instance
+        if(tag == configuration->getCurrentWorkInstance())
+        {
+            configLevel = workInstanceAction;
+        }
+        if(tag == "default")
+        {
+            nameLevel = workInstanceAction;
+        }
+    }
+    if(workInstances.count() == 1)
+    {
+        uniqueLevel = workInstanceMenu->actions().at(0);
+    }
+    // Select each level's default work instance
+    (configLevel == nullptr ? (nameLevel == nullptr ? uniqueLevel : nameLevel) : configLevel)->setChecked(true);
+}
+
+bool MainService::checkAvailable()
+{
+    return currentWorkInstance != nullptr;
+}
+
+void MainService::startConnect()
+{
+    v2rayCore->close();
+    v2rayCore->setProgram(configuration->getCorePath());
+    QStringList args;
+    args << currentWorkInstance->take(V2RAY_CONFIG_CURRENT_INSTANCE_KEY);
+    qDebug() << configuration->getCorePath() << args;
+    v2rayCore->setArguments(args);
+    v2rayCore->setProcessChannelMode(QProcess :: MergedChannels);
+    v2rayCore->start();
+    v2rayCore->closeWriteChannel();
+}
+
+void MainService::closeConnect()
+{
+    v2rayCore->close();
+}
+
 /******************************************** SLOTS ********************************************/
 
 void MainService::switchSlot()
 {
-
+    if(status == AppStatus::Disabled)
+    {
+        startConnect();
+    }
+    else
+    {
+        closeConnect();
+    }
 }
 
 void MainService::configSlot()
 {
-
+    notReady();
 }
 
 void MainService::monitorSlot()
 {
-
+    notReady();
 }
 
 void MainService::aboutSlot()
 {
-
+    notReady();
 }
 
 void MainService::exitSlot()
 {
-
+    QApplication::quit();
 }
 
 void MainService::restartSlot()
 {
 
+}
+
+void MainService::selectWorkInstanceSlot(bool checked)
+{
+    if(checked)
+    {
+        QAction *act=qobject_cast<QAction*>(sender());
+        currentWorkInstance = act->data().value<WorkInstance*>();
+        // restart v2ray core
+        startConnect();
+    }
+}
+
+void MainService::processStartSlot()
+{
+    setSysStatus(AppStatus::Enabled);
+}
+
+void MainService::processFinishSlot(int exitCode, QProcess::ExitStatus exitStatus)
+{
+    setSysStatus(AppStatus::Disabled);
+}
+
+void MainService::processErrorSlot(QProcess::ProcessError error)
+{
+    QString errDes;
+    switch (error)
+    {
+    case QProcess::FailedToStart:
+        errDes = tr("V2Ray core failed to start.");
+        break;
+    case QProcess::Crashed:
+        errDes = tr("V2Ray core crashed.");
+        break;
+    default:
+        errDes = tr("Unknown error.");
+    }
+    QMessageBox::critical(this, tr("V2Ray Aborted"), errDes);
+}
+
+void MainService::notReady()
+{
+    QMessageBox::information(this, tr("Sorry"), tr("This feature is under Developing."));
 }
