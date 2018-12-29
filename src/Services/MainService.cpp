@@ -165,8 +165,10 @@ void MainService::loadConfiguration()
             if(checkAvailable())
             {
                 switchAction->setEnabled(true);
+                qDebug() << configuration->getAutoConnect();
                 if(configuration->getAutoConnect())
                 {
+                    qDebug() << "Got!";
                     switchSlot();
                 }
             }
@@ -255,7 +257,7 @@ bool MainService::checkAvailable()
 
 void MainService::startConnect()
 {
-    v2rayCore->close();
+    qDebug() << "Got!";    v2rayCore->close();
     v2rayCore->setProgram(configuration->getCorePath());
     QStringList args;
     args << currentWorkInstance->take(V2RAY_CONFIG_CURRENT_INSTANCE_KEY);
@@ -302,6 +304,7 @@ void MainService::aboutSlot()
 
 void MainService::exitSlot()
 {
+    v2rayCore->close();
     QApplication::quit();
 }
 
@@ -316,8 +319,8 @@ void MainService::selectWorkInstanceSlot(bool checked)
     {
         QAction *act=qobject_cast<QAction*>(sender());
         currentWorkInstance = act->data().value<WorkInstance*>();
-        // restart v2ray core
-        startConnect();
+        // restart v2ray core if it is running
+        if(status == AppStatus::Enabled) startConnect();
     }
 }
 
@@ -333,19 +336,23 @@ void MainService::processFinishSlot(int exitCode, QProcess::ExitStatus exitStatu
 
 void MainService::processErrorSlot(QProcess::ProcessError error)
 {
+    qDebug() << v2rayCore->exitCode();
     QString errDes;
     switch (error)
     {
     case QProcess::FailedToStart:
         errDes = tr("V2Ray core failed to start.");
         break;
-    case QProcess::Crashed:
-        errDes = tr("V2Ray core crashed.");
-        break;
-    default:
-        errDes = tr("Unknown error.");
+//    case QProcess::Crashed:
+//        errDes = tr("V2Ray core crashed.");
+//        break;
+//    default:
+//        errDes = tr("Unknown error.");
     }
-    QMessageBox::critical(this, tr("V2Ray Aborted"), errDes);
+    if(!errDes.isEmpty())
+    {
+        QMessageBox::critical(this, tr("V2Ray Aborted"), errDes);
+    }
 }
 
 void MainService::notReady()
