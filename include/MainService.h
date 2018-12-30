@@ -1,19 +1,22 @@
 #ifndef MainService_H
 #define MainService_H
 
+#include <QApplication>
 #include <QWidget>
+#include <QPoint>
 #include <QMenu>
 #include <QActionGroup>
 #include <QSystemTrayIcon>
 #include <QProcess>
+#include <QMessageBox>
 #include "ConfigService.h"
 
-class MainService : public QWidget
+class MainService : public QApplication
 {
     Q_OBJECT
 
 public:
-    explicit MainService(QWidget *parent = nullptr);
+    explicit MainService(int &argc, char **argv);
     ~MainService();
 
     // specify application status
@@ -48,8 +51,11 @@ private:
     void clearWorkInstanceMenu();
     void loadWorkInstanceMenu();
     bool checkAvailable();
-    void startConnect();
+    void restartConnect();
     void closeConnect();
+    int ShowMsgBox(const QMessageBox::Icon type, const QString &text,
+                   const QMessageBox::StandardButtons buttons = QMessageBox::Ok,
+                   const QMessageBox::StandardButton defaultButton = QMessageBox::Ok);
 
     void notReady();
 
@@ -58,7 +64,7 @@ public slots:
     void configSlot();
     void monitorSlot();
     void aboutSlot();
-    void exitSlot();
+    void quit();
     void restartSlot();
     void selectWorkInstanceSlot(bool checked);
     void processStartSlot();

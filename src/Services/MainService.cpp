@@ -1,10 +1,10 @@
 #include <QApplication>
+#include <QDesktopWidget>
 #include <QIcon>
 #include <QPixmap>
 #include <QImage>
 #include <QFile>
 #include <QFileInfo>
-#include <QMessageBox>
 #include <QVariant>
 #include "MainService.h"
 #include <QDebug>
@@ -12,13 +12,18 @@
 #define V2RAY_SYS_TRAY_ENABLED_ICON_PATH ":/images/enabled.png"
 #define V2RAY_SYS_TRAY_DISABLED_ICON_PATH ":/images/disabled.png"
 #define V2RAY_SYS_TRAY_ERROR_ICON_PATH ":/images/error.png"
+#define V2RAY_ERR_MSG_START_WITH_DEFAULT "Do you want to start with the default configuration?"
+#define V2RAY_ERR_MSG_NO_CONFIG_FILE "Do you want to start with the default configuration?"
+#define V2RAY_QUES_MSG_DEFAULT_CONFIG_RELEASED "Default configuration has been released"
+#define V2RAY_QUES_MSG_WHETHER_RELOAD "Do you want to reload with it?"
+#define V2RAY_INFO_MSG_FEATURE_UNDER_DEV "Sorry, this feature is under Developing"
 
-MainService::MainService(QWidget *parent) :
-    QWidget(parent),
+MainService::MainService(int &argc, char **argv) :
+    QApplication(argc, argv),
     configuration(ConfigService::getInstance(this)),
     v2rayCore(new QProcess(this)),
     trayIcon(new QSystemTrayIcon(this)),
-    mainMenu(new QMenu(this)),
+    mainMenu(new QMenu()),
     switchAction(new QAction(mainMenu)),
     workInstanceMenu(new QMenu(mainMenu)),
     workInstanceGroup(new QActionGroup(mainMenu)),
@@ -49,7 +54,8 @@ MainService::MainService(QWidget *parent) :
 
 MainService::~MainService()
 {
-
+    delete mainMenu;
+    mainMenu = nullptr;
 }
 
 void MainService::setSysStatus(MainService::AppStatus status)
@@ -124,7 +130,7 @@ void MainService::initMainMenu()
     // Close
     mainMenu->addAction(exitAction);
     exitAction->setText(tr("Exit"));
-    connect(exitAction, &QAction::triggered, this, &MainService::exitSlot);
+    connect(exitAction, &QAction::triggered, this, &MainService::quit);
 }
 
 void MainService::loadConfiguration()
@@ -137,17 +143,19 @@ void MainService::loadConfiguration()
         QString loadJsonErr;
         if(!configuration->loadFromJson("settings.json", loadJsonErr))
         {
-            if(QMessageBox::Yes ==
-            QMessageBox::critical(this, tr("Fatal Error"),
-                    QString("%1\n%2")
-                    .arg(loadJsonErr,
-                            tr("Do you want to start with the default configuration?")),
-                            QMessageBox::Yes|QMessageBox::No))
+//            if(QMessageBox::Yes ==
+//            QMessageBox::critical(nullptr, tr("Fatal Error"),
+//                    QString("%1\n%2")
+//                    .arg(loadJsonErr,
+//                            tr("Do you want to start with the default configuration?")),
+//                            QMessageBox::Yes|QMessageBox::No))
+            if(ShowMsgBox(QMessageBox::Critical, QString("%1\n%2").arg(loadJsonErr, tr(V2RAY_ERR_MSG_START_WITH_DEFAULT)),
+                          QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes) == QMessageBox::Yes)
             {
                 // Release resource json file
                 if(configuration->releaseDefaultJson())
                 {
-                    if(QMessageBox::Yes == QMessageBox::information(this, tr("Reload"),
+                    if(QMessageBox::Yes == QMessageBox::information(nullptr, tr("Reload"),
                             QString("%1\n%2")
                             .arg(tr("Default configuration has been released."),
                                     tr("Do you want to reload with it?")),
@@ -182,21 +190,25 @@ void MainService::loadConfiguration()
     }
     else
     {
-        if(QMessageBox::Yes ==
-        QMessageBox::critical(this, tr("Fatal Error"),
-                QString("%1\n%2")
-                .arg(tr("No configuration file found."),
-                     tr("Do you want to start with the default configuration?")),
-                        QMessageBox::Yes|QMessageBox::No))
+//        if(QMessageBox::Yes ==
+//        QMessageBox::critical(nullptr, tr("Fatal Error"),
+//                QString("%1\n%2")
+//                .arg(tr("No configuration file found."),
+//                     tr("Do you want to start with the default configuration?")),
+//                        QMessageBox::Yes|QMessageBox::No))
+        if(ShowMsgBox(QMessageBox::Critical, QString("%1\n%2").arg(V2RAY_ERR_MSG_NO_CONFIG_FILE, tr(V2RAY_ERR_MSG_START_WITH_DEFAULT)),
+                      QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes) == QMessageBox::Yes)
         {
             // Release resource json file
             if(configuration->releaseDefaultJson())
             {
-                if(QMessageBox::Yes == QMessageBox::information(this, tr("Reload"),
-                        QString("%1\n%2")
-                        .arg(tr("Default configuration has been released."),
-                                tr("Do you want to reload with it?")),
-                                QMessageBox::Yes|QMessageBox::No))
+//                if(QMessageBox::Yes == QMessageBox::information(nullptr, tr("Reload"),
+//                        QString("%1\n%2")
+//                        .arg(tr("Default configuration has been released."),
+//                                tr("Do you want to reload with it?")),
+//                                QMessageBox::Yes|QMessageBox::No))
+                if(ShowMsgBox(QMessageBox::Question, QString("%1\n%2").arg(V2RAY_QUES_MSG_DEFAULT_CONFIG_RELEASED, tr(V2RAY_QUES_MSG_WHETHER_RELOAD)),
+                              QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes) == QMessageBox::Yes)
                 {
                     loadConfiguration();
                     return;
@@ -257,13 +269,12 @@ bool MainService::checkAvailable()
     return currentWorkInstance != nullptr;
 }
 
-void MainService::startConnect()
+void MainService::restartConnect()
 {
-    qDebug() << "Got!";    v2rayCore->close();
+    closeConnect();
     v2rayCore->setProgram(configuration->getCorePath());
     QStringList args;
     args << currentWorkInstance->take(V2RAY_CONFIG_CURRENT_INSTANCE_KEY);
-    qDebug() << configuration->getCorePath() << args;
     v2rayCore->setArguments(args);
     v2rayCore->setProcessChannelMode(QProcess :: MergedChannels);
     v2rayCore->start();
@@ -273,6 +284,39 @@ void MainService::startConnect()
 void MainService::closeConnect()
 {
     v2rayCore->close();
+    v2rayCore->waitForFinished();
+}
+
+int MainService::ShowMsgBox(const QMessageBox::Icon type, const QString &text,
+                            const QMessageBox::StandardButtons buttons,
+                            const QMessageBox::StandardButton defaultButton)
+{
+    QMessageBox msgBox;
+    msgBox.setIcon(type);
+    msgBox.setText(text);
+    msgBox.setStandardButtons(buttons);
+    msgBox.setDefaultButton(defaultButton);
+    switch (type)
+    {
+    case QMessageBox::Question:
+        msgBox.setWindowTitle("Question");
+        break;
+    case QMessageBox::Information:
+        msgBox.setWindowTitle("Information");
+        break;
+    case QMessageBox::Warning:
+        msgBox.setWindowTitle("Warning");
+        break;
+    case QMessageBox::Critical:
+        msgBox.setWindowTitle("Critical");
+        break;
+    default:
+        msgBox.setWindowTitle("Unknown");
+        break;
+    }
+    msgBox.show();
+    msgBox.move((desktop()->width() - msgBox.width()) / 2, (desktop()->height() - msgBox.height()) / 2);
+    return msgBox.exec();
 }
 
 /******************************************** SLOTS ********************************************/
@@ -281,7 +325,7 @@ void MainService::switchSlot()
 {
     if(status == AppStatus::Disabled)
     {
-        startConnect();
+        restartConnect();
     }
     else
     {
@@ -304,10 +348,9 @@ void MainService::aboutSlot()
     notReady();
 }
 
-void MainService::exitSlot()
+void MainService::quit()
 {
-    v2rayCore->close();
-    v2rayCore->waitForFinished();
+    closeConnect();
     QApplication::quit();
 }
 
@@ -323,7 +366,7 @@ void MainService::selectWorkInstanceSlot(bool checked)
         QAction *act=qobject_cast<QAction*>(sender());
         currentWorkInstance = act->data().value<WorkInstance*>();
         // restart v2ray core if it is running
-        if(status == AppStatus::Enabled) startConnect();
+        if(status == AppStatus::Enabled) restartConnect();
     }
 }
 
@@ -334,6 +377,8 @@ void MainService::processStartSlot()
 
 void MainService::processFinishSlot(int exitCode, QProcess::ExitStatus exitStatus)
 {
+    Q_UNUSED(exitCode);
+    Q_UNUSED(exitStatus);
     setSysStatus(AppStatus::Disabled);
 }
 
@@ -346,19 +391,22 @@ void MainService::processErrorSlot(QProcess::ProcessError error)
     case QProcess::FailedToStart:
         errDes = tr("V2Ray core failed to start.");
         break;
-//    case QProcess::Crashed:
+    case QProcess::Crashed:
 //        errDes = tr("V2Ray core crashed.");
-//        break;
-//    default:
+        break;
+    default:
 //        errDes = tr("Unknown error.");
+        break;
     }
     if(!errDes.isEmpty())
     {
-        QMessageBox::critical(this, tr("V2Ray Aborted"), errDes);
+//        QMessageBox::critical(nullptr, tr("V2Ray Aborted"), errDes);
+        ShowMsgBox(QMessageBox::Critical, errDes);
     }
 }
 
 void MainService::notReady()
 {
-    QMessageBox::information(this, tr("Sorry"), tr("This feature is under Developing."));
+//    QMessageBox::information(nullptr, tr("Sorry"), tr("This feature is under Developing."));
+    ShowMsgBox(QMessageBox::Information, tr(V2RAY_INFO_MSG_FEATURE_UNDER_DEV));
 }
