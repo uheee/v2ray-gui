@@ -1,6 +1,6 @@
 {
     "autoConnect": false,
-    "corePath": "v2ray.exe",
+    "corePath": "v2ray",
     "currentWorkInstance": "default",
     "workInstances": [
         {

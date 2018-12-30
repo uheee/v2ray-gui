@@ -1,5 +1,7 @@
 #include <QApplication>
 #include <QIcon>
+#include <QPixmap>
+#include <QImage>
 #include <QFile>
 #include <QFileInfo>
 #include <QMessageBox>
@@ -7,9 +9,9 @@
 #include "MainService.h"
 #include <QDebug>
 
-#define V2RAY_SYS_TRAY_ENABLED_ICON_PATH ":/icon/icons/tray_enabled.ico"
-#define V2RAY_SYS_TRAY_DISABLED_ICON_PATH ":/icon/icons/tray_disabled.ico"
-#define V2RAY_SYS_TRAY_ERROR_ICON_PATH ":/icon/icons/tray_error.ico"
+#define V2RAY_SYS_TRAY_ENABLED_ICON_PATH ":/images/enabled.png"
+#define V2RAY_SYS_TRAY_DISABLED_ICON_PATH ":/images/disabled.png"
+#define V2RAY_SYS_TRAY_ERROR_ICON_PATH ":/images/error.png"
 
 MainService::MainService(QWidget *parent) :
     QWidget(parent),
@@ -305,6 +307,7 @@ void MainService::aboutSlot()
 void MainService::exitSlot()
 {
     v2rayCore->close();
+    v2rayCore->waitForFinished();
     QApplication::quit();
 }
 

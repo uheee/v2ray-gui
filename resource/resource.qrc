@@ -1,14 +1,7 @@
 <RCC>
-    <qresource prefix="/icon">
-        <file>icons/file.ico</file>
-        <file>icons/tray_disabled.ico</file>
-        <file>icons/tray_enabled.ico</file>
-        <file>icons/tray_error.ico</file>
-    </qresource>
-    <qresource prefix="/qss">
-        <file>theme/style.qss</file>
-    </qresource>
-    <qresource prefix="/config">
+    <qresource prefix="/">
+        <file>images/disabled.png</file>
+        <file>images/enabled.png</file>
         <file>config/settings.json</file>
     </qresource>
 </RCC>
