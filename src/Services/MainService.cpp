@@ -290,8 +290,9 @@ void MainService::restartConnect() const
 
 void MainService::closeConnect() const
 {
-    v2rayCore->close();
+    v2rayCore->kill();
     v2rayCore->waitForFinished();
+    v2rayCore->close();
 }
 
 int MainService::showMsgBox(const QMessageBox::Icon type, const QString &text,
@@ -364,11 +365,8 @@ void MainService::aboutSlot() const
 
 void MainService::quit() const
 {
-    qDebug() << "Quit";
     closeConnect();
-    qDebug() << "Real Quit";
     QApplication::quit();
-    qDebug() << "Quited!";
 }
 
 void MainService::restartSlot() const
@@ -405,7 +403,6 @@ void MainService::processFinishSlot(int exitCode, QProcess::ExitStatus exitStatu
 
 void MainService::processErrorSlot(QProcess::ProcessError error) const
 {
-    qDebug() << v2rayCore->exitCode();
     QString errDes;
     switch (error)
     {
