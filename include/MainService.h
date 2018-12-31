@@ -44,32 +44,33 @@ private:
     WorkInstance *currentWorkInstance;
 
     // Functions
-    void setSysStatus(AppStatus status);
-    AppStatus getSysStatus();
-    void initMainMenu();
+    void sayHello(QSystemTrayIcon::ActivationReason reason);
+    void setSysStatus(const AppStatus status);
+    AppStatus getSysStatus() const;
+    void initMainMenu() const;
     void loadConfiguration();
-    void clearWorkInstanceMenu();
+    void clearWorkInstanceMenu() const;
     void loadWorkInstanceMenu();
-    bool checkAvailable();
-    void restartConnect();
-    void closeConnect();
-    int ShowMsgBox(const QMessageBox::Icon type, const QString &text,
+    bool checkAvailable() const;
+    void restartConnect() const;
+    void closeConnect() const;
+    int showMsgBox(const QMessageBox::Icon type, const QString &text,
                    const QMessageBox::StandardButtons buttons = QMessageBox::Ok,
-                   const QMessageBox::StandardButton defaultButton = QMessageBox::Ok);
+                   const QMessageBox::StandardButton defaultButton = QMessageBox::Ok) const;
 
-    void notReady();
+    void notReady() const;
 
 public slots:
-    void switchSlot();
-    void configSlot();
-    void monitorSlot();
-    void aboutSlot();
-    void quit();
-    void restartSlot();
+    void switchSlot() const;
+    void configSlot() const;
+    void monitorSlot() const;
+    void aboutSlot() const;
+    void quit() const;
+    void restartSlot() const;
     void selectWorkInstanceSlot(bool checked);
     void processStartSlot();
     void processFinishSlot(int exitCode, QProcess::ExitStatus exitStatus);
-    void processErrorSlot(QProcess::ProcessError error);
+    void processErrorSlot(QProcess::ProcessError error) const;
 };
 
 #endif // MainService_H

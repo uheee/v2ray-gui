@@ -6,6 +6,7 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QVariant>
+#include <QLockFile>
 #include "MainService.h"
 #include <QDebug>
 
@@ -17,6 +18,7 @@
 #define V2RAY_QUES_MSG_DEFAULT_CONFIG_RELEASED "Default configuration has been released"
 #define V2RAY_QUES_MSG_WHETHER_RELOAD "Do you want to reload with it?"
 #define V2RAY_INFO_MSG_FEATURE_UNDER_DEV "Sorry, this feature is under Developing"
+#define V2RAY_TRAY_MSG_WORK_INSTANCE_CHANGE "V2Ray work instance has changed to"
 
 MainService::MainService(int &argc, char **argv) :
     QApplication(argc, argv),
@@ -46,6 +48,7 @@ MainService::MainService(int &argc, char **argv) :
     loadConfiguration();
 
     // Binding signals and slots
+    connect(trayIcon, &QSystemTrayIcon::activated, this, &MainService::sayHello);
     connect(v2rayCore, &QProcess::started, this, &MainService::processStartSlot);
     connect(v2rayCore, static_cast<void(QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished),
             this, &MainService::processFinishSlot);
@@ -58,7 +61,13 @@ MainService::~MainService()
     mainMenu = nullptr;
 }
 
-void MainService::setSysStatus(MainService::AppStatus status)
+void MainService::sayHello(QSystemTrayIcon::ActivationReason reason)
+{
+    if(reason == QSystemTrayIcon::DoubleClick)
+        trayIcon->showMessage(":)", "Hello!");
+}
+
+void MainService::setSysStatus(const MainService::AppStatus status)
 {
     this->status = status;
     switch (status)
@@ -87,12 +96,12 @@ void MainService::setSysStatus(MainService::AppStatus status)
     }
 }
 
-MainService::AppStatus MainService::getSysStatus()
+MainService::AppStatus MainService::getSysStatus() const
 {
     return status;
 }
 
-void MainService::initMainMenu()
+void MainService::initMainMenu() const
 {
     // Connect/Disconnect
     mainMenu->addAction(switchAction);
@@ -149,7 +158,7 @@ void MainService::loadConfiguration()
 //                    .arg(loadJsonErr,
 //                            tr("Do you want to start with the default configuration?")),
 //                            QMessageBox::Yes|QMessageBox::No))
-            if(ShowMsgBox(QMessageBox::Critical, QString("%1\n%2").arg(loadJsonErr, tr(V2RAY_ERR_MSG_START_WITH_DEFAULT)),
+            if(showMsgBox(QMessageBox::Critical, QString("%1\n%2").arg(loadJsonErr, tr(V2RAY_ERR_MSG_START_WITH_DEFAULT)),
                           QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes) == QMessageBox::Yes)
             {
                 // Release resource json file
@@ -175,10 +184,8 @@ void MainService::loadConfiguration()
             if(checkAvailable())
             {
                 switchAction->setEnabled(true);
-                qDebug() << configuration->getAutoConnect();
                 if(configuration->getAutoConnect())
                 {
-                    qDebug() << "Got!";
                     switchSlot();
                 }
             }
@@ -196,7 +203,7 @@ void MainService::loadConfiguration()
 //                .arg(tr("No configuration file found."),
 //                     tr("Do you want to start with the default configuration?")),
 //                        QMessageBox::Yes|QMessageBox::No))
-        if(ShowMsgBox(QMessageBox::Critical, QString("%1\n%2").arg(V2RAY_ERR_MSG_NO_CONFIG_FILE, tr(V2RAY_ERR_MSG_START_WITH_DEFAULT)),
+        if(showMsgBox(QMessageBox::Critical, QString("%1\n%2").arg(V2RAY_ERR_MSG_NO_CONFIG_FILE, tr(V2RAY_ERR_MSG_START_WITH_DEFAULT)),
                       QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes) == QMessageBox::Yes)
         {
             // Release resource json file
@@ -207,7 +214,7 @@ void MainService::loadConfiguration()
 //                        .arg(tr("Default configuration has been released."),
 //                                tr("Do you want to reload with it?")),
 //                                QMessageBox::Yes|QMessageBox::No))
-                if(ShowMsgBox(QMessageBox::Question, QString("%1\n%2").arg(V2RAY_QUES_MSG_DEFAULT_CONFIG_RELEASED, tr(V2RAY_QUES_MSG_WHETHER_RELOAD)),
+                if(showMsgBox(QMessageBox::Question, QString("%1\n%2").arg(V2RAY_QUES_MSG_DEFAULT_CONFIG_RELEASED, tr(V2RAY_QUES_MSG_WHETHER_RELOAD)),
                               QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes) == QMessageBox::Yes)
                 {
                     loadConfiguration();
@@ -219,7 +226,7 @@ void MainService::loadConfiguration()
     }
 }
 
-void MainService::clearWorkInstanceMenu()
+void MainService::clearWorkInstanceMenu() const
 {
     foreach (QAction *action, workInstanceMenu->actions())
     {
@@ -264,12 +271,12 @@ void MainService::loadWorkInstanceMenu()
     (configLevel == nullptr ? (nameLevel == nullptr ? uniqueLevel : nameLevel) : configLevel)->setChecked(true);
 }
 
-bool MainService::checkAvailable()
+bool MainService::checkAvailable() const
 {
     return currentWorkInstance != nullptr;
 }
 
-void MainService::restartConnect()
+void MainService::restartConnect() const
 {
     closeConnect();
     v2rayCore->setProgram(configuration->getCorePath());
@@ -281,15 +288,15 @@ void MainService::restartConnect()
     v2rayCore->closeWriteChannel();
 }
 
-void MainService::closeConnect()
+void MainService::closeConnect() const
 {
     v2rayCore->close();
     v2rayCore->waitForFinished();
 }
 
-int MainService::ShowMsgBox(const QMessageBox::Icon type, const QString &text,
+int MainService::showMsgBox(const QMessageBox::Icon type, const QString &text,
                             const QMessageBox::StandardButtons buttons,
-                            const QMessageBox::StandardButton defaultButton)
+                            const QMessageBox::StandardButton defaultButton) const
 {
     QMessageBox msgBox;
     msgBox.setIcon(type);
@@ -319,9 +326,16 @@ int MainService::ShowMsgBox(const QMessageBox::Icon type, const QString &text,
     return msgBox.exec();
 }
 
+
+void MainService::notReady() const
+{
+//    QMessageBox::information(nullptr, tr("Sorry"), tr("This feature is under Developing."));
+    showMsgBox(QMessageBox::Information, tr(V2RAY_INFO_MSG_FEATURE_UNDER_DEV));
+}
+
 /******************************************** SLOTS ********************************************/
 
-void MainService::switchSlot()
+void MainService::switchSlot() const
 {
     if(status == AppStatus::Disabled)
     {
@@ -333,28 +347,31 @@ void MainService::switchSlot()
     }
 }
 
-void MainService::configSlot()
+void MainService::configSlot() const
 {
     notReady();
 }
 
-void MainService::monitorSlot()
+void MainService::monitorSlot() const
 {
     notReady();
 }
 
-void MainService::aboutSlot()
+void MainService::aboutSlot() const
 {
     notReady();
 }
 
-void MainService::quit()
+void MainService::quit() const
 {
+    qDebug() << "Quit";
     closeConnect();
+    qDebug() << "Real Quit";
     QApplication::quit();
+    qDebug() << "Quited!";
 }
 
-void MainService::restartSlot()
+void MainService::restartSlot() const
 {
 
 }
@@ -366,7 +383,11 @@ void MainService::selectWorkInstanceSlot(bool checked)
         QAction *act=qobject_cast<QAction*>(sender());
         currentWorkInstance = act->data().value<WorkInstance*>();
         // restart v2ray core if it is running
-        if(status == AppStatus::Enabled) restartConnect();
+        if(status == AppStatus::Enabled)
+        {
+            restartConnect();
+            trayIcon->showMessage("V2Ray", QString("%1 %2").arg(tr(V2RAY_TRAY_MSG_WORK_INSTANCE_CHANGE), currentWorkInstance->take(V2RAY_CONFIG_INSTANCE_TAG_KEY)));
+        }
     }
 }
 
@@ -382,7 +403,7 @@ void MainService::processFinishSlot(int exitCode, QProcess::ExitStatus exitStatu
     setSysStatus(AppStatus::Disabled);
 }
 
-void MainService::processErrorSlot(QProcess::ProcessError error)
+void MainService::processErrorSlot(QProcess::ProcessError error) const
 {
     qDebug() << v2rayCore->exitCode();
     QString errDes;
@@ -401,12 +422,6 @@ void MainService::processErrorSlot(QProcess::ProcessError error)
     if(!errDes.isEmpty())
     {
 //        QMessageBox::critical(nullptr, tr("V2Ray Aborted"), errDes);
-        ShowMsgBox(QMessageBox::Critical, errDes);
+        showMsgBox(QMessageBox::Critical, errDes);
     }
-}
-
-void MainService::notReady()
-{
-//    QMessageBox::information(nullptr, tr("Sorry"), tr("This feature is under Developing."));
-    ShowMsgBox(QMessageBox::Information, tr(V2RAY_INFO_MSG_FEATURE_UNDER_DEV));
 }
