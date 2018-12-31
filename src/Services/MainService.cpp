@@ -14,7 +14,7 @@
 #define V2RAY_SYS_TRAY_DISABLED_ICON_PATH ":/images/disabled.png"
 #define V2RAY_SYS_TRAY_ERROR_ICON_PATH ":/images/error.png"
 #define V2RAY_ERR_MSG_START_WITH_DEFAULT "Do you want to start with the default configuration?"
-#define V2RAY_ERR_MSG_NO_CONFIG_FILE "Do you want to start with the default configuration?"
+#define V2RAY_ERR_MSG_NO_CONFIG_FILE "No configuration file found."
 #define V2RAY_QUES_MSG_DEFAULT_CONFIG_RELEASED "Default configuration has been released"
 #define V2RAY_QUES_MSG_WHETHER_RELOAD "Do you want to reload with it?"
 #define V2RAY_INFO_MSG_FEATURE_UNDER_DEV "Sorry, this feature is under Developing"
