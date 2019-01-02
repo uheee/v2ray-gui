@@ -57,9 +57,9 @@ bool ConfigService::loadFromJson(QString filePath, QString &errDes)
     return true;
 }
 
-bool ConfigService::releaseDefaultJson()
+bool ConfigService::releaseDefaultJson(const QString &path)
 {
-    return QFile::copy(V2RAY_RESOURCE_SETTINGS_PATH, "./settings.json");
+    return QFile::copy(V2RAY_RESOURCE_SETTINGS_PATH, path);
 }
 
 bool ConfigService::getAutoConnect() const

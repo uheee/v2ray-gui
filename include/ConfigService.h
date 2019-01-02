@@ -9,7 +9,7 @@
 
 #define V2RAY_CONFIG_AUTO_CONNECT_KEY           "autoConnect"
 #define V2RAY_CONFIG_CORE_PATH_KEY              "corePath"
-#define V2RAY_CONFIG_CURRENT_SECTION_KEY        "currentWorkSection"
+#define V2RAY_CONFIG_CURRENT_SECTION_KEY        "currentSection"
 #define V2RAY_CONFIG_SECTION_KEY                "sections"
 #define V2RAY_CONFIG_SECTION_TAG_KEY            "tag"
 #define V2RAY_CONFIG_SECTION_CONFIG_PATH_KEY    "configPath"
@@ -24,7 +24,7 @@ class ConfigService : QObject
 public:
     static ConfigService *getInstance(QObject *parent = nullptr);
     bool loadFromJson(QString filePath, QString &errDes);
-    bool releaseDefaultJson();
+    bool releaseDefaultJson(const QString &path);
     bool getAutoConnect() const;
     const QString &getCorePath() const;
     const QString &getCurrentSection() const;

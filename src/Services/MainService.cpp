@@ -10,15 +10,16 @@
 #include "MainService.h"
 #include <QDebug>
 
-#define V2RAY_SYS_TRAY_ENABLED_ICON_PATH ":/images/enabled.png"
-#define V2RAY_SYS_TRAY_DISABLED_ICON_PATH ":/images/disabled.png"
-#define V2RAY_SYS_TRAY_ERROR_ICON_PATH ":/images/error.png"
-#define V2RAY_ERR_MSG_START_WITH_DEFAULT "Do you want to start with the default configuration?"
-#define V2RAY_ERR_MSG_NO_CONFIG_FILE "No configuration file found."
-#define V2RAY_QUES_MSG_DEFAULT_CONFIG_RELEASED "Default configuration has been released"
-#define V2RAY_QUES_MSG_WHETHER_RELOAD "Do you want to reload with it?"
-#define V2RAY_INFO_MSG_FEATURE_UNDER_DEV "Sorry, this feature is under Developing"
-#define V2RAY_TRAY_MSG_SECTION_CHANGE "Section has changed to"
+#define V2RAY_SETTINGS_FILE_PATH                applicationDirPath() + "/settings.json"
+#define V2RAY_SYS_TRAY_ENABLED_ICON_PATH        ":/images/enabled.png"
+#define V2RAY_SYS_TRAY_DISABLED_ICON_PATH       ":/images/disabled.png"
+#define V2RAY_SYS_TRAY_ERROR_ICON_PATH          ":/images/error.png"
+#define V2RAY_ERR_MSG_START_WITH_DEFAULT        "Do you want to start with the default configuration?"
+#define V2RAY_ERR_MSG_NO_CONFIG_FILE            "No configuration file found."
+#define V2RAY_QUES_MSG_DEFAULT_CONFIG_RELEASED  "Default configuration has been released"
+#define V2RAY_QUES_MSG_WHETHER_RELOAD           "Do you want to reload with it?"
+#define V2RAY_INFO_MSG_FEATURE_UNDER_DEV        "Sorry, this feature is under Developing"
+#define V2RAY_TRAY_MSG_SECTION_CHANGE           "Section has changed to"
 
 MainService::MainService(int &argc, char **argv) :
     QApplication(argc, argv),
@@ -145,12 +146,12 @@ void MainService::initMainMenu() const
 void MainService::loadConfiguration()
 {
     // Check if settings.json file exists
-    QFileInfo settingsInfo("settings.json");
+    QFileInfo settingsInfo(V2RAY_SETTINGS_FILE_PATH);
     if(settingsInfo.isFile())
     {
         // Load config file
         QString loadJsonErr;
-        if(!configuration->loadFromJson("settings.json", loadJsonErr))
+        if(!configuration->loadFromJson(V2RAY_SETTINGS_FILE_PATH, loadJsonErr))
         {
 //            if(QMessageBox::Yes ==
 //            QMessageBox::critical(nullptr, tr("Fatal Error"),
@@ -162,7 +163,7 @@ void MainService::loadConfiguration()
                           QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes) == QMessageBox::Yes)
             {
                 // Release resource json file
-                if(configuration->releaseDefaultJson())
+                if(configuration->releaseDefaultJson(V2RAY_SETTINGS_FILE_PATH))
                 {
                     if(QMessageBox::Yes == QMessageBox::information(nullptr, tr("Reload"),
                             QString("%1\n%2")
@@ -207,7 +208,7 @@ void MainService::loadConfiguration()
                       QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes) == QMessageBox::Yes)
         {
             // Release resource json file
-            if(configuration->releaseDefaultJson())
+            if(configuration->releaseDefaultJson(V2RAY_SETTINGS_FILE_PATH))
             {
 //                if(QMessageBox::Yes == QMessageBox::information(nullptr, tr("Reload"),
 //                        QString("%1\n%2")
