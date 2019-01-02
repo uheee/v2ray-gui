@@ -9,13 +9,13 @@
 
 #define V2RAY_CONFIG_AUTO_CONNECT_KEY           "autoConnect"
 #define V2RAY_CONFIG_CORE_PATH_KEY              "corePath"
-#define V2RAY_CONFIG_CURRENT_INSTANCE_KEY       "currentWorkInstance"
-#define V2RAY_CONFIG_INSTANCE_KEY               "workInstances"
-#define V2RAY_CONFIG_INSTANCE_TAG_KEY           "tag"
-#define V2RAY_CONFIG_INSTANCE_CONFIG_PATH_KEY   "configPath"
+#define V2RAY_CONFIG_CURRENT_SECTION_KEY        "currentWorkSection"
+#define V2RAY_CONFIG_SECTION_KEY                "sections"
+#define V2RAY_CONFIG_SECTION_TAG_KEY            "tag"
+#define V2RAY_CONFIG_SECTION_CONFIG_PATH_KEY    "configPath"
 
-typedef QMap<QString, QString> WorkInstance;
-typedef QList<WorkInstance*> WorkInstanceList;
+typedef QMap<QString, QString> Section;
+typedef QList<Section*> SectionList;
 
 class ConfigService : QObject
 {
@@ -27,22 +27,22 @@ public:
     bool releaseDefaultJson();
     bool getAutoConnect() const;
     const QString &getCorePath() const;
-    const QString &getCurrentWorkInstance() const;
-    const WorkInstanceList &getWorkInstances();
+    const QString &getCurrentSection() const;
+    const SectionList &getSections();
 
 private:
     explicit ConfigService(QObject *parent = nullptr);
     ~ConfigService();
-    void clearWorkInstances();
+    void clearSections();
 
     static ConfigService *singleInstance;
     bool autoConnect;
     QString corePath;
-    QString currentWorkInstance;
-    QJsonArray workInstanceArray;
-    WorkInstanceList workInstances;
+    QString currentSection;
+    QJsonArray sectionArray;
+    SectionList sections;
 };
 
-Q_DECLARE_METATYPE(WorkInstance*)
+Q_DECLARE_METATYPE(Section*)
 
 #endif // CONFIGSERVICE_H

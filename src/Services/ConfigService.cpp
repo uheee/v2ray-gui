@@ -15,9 +15,9 @@ ConfigService::ConfigService(QObject *parent) : QObject(parent)
 
 ConfigService::~ConfigService() = default;
 
-void ConfigService::clearWorkInstances()
+void ConfigService::clearSections()
 {
-    foreach (WorkInstance *item, workInstances)
+    foreach (Section *item, sections)
     {
         delete item;
     }
@@ -46,8 +46,8 @@ bool ConfigService::loadFromJson(QString filePath, QString &errDes)
         QJsonObject jsonObj = jsonDoc.object(); // Root Object
         autoConnect = jsonObj.take(V2RAY_CONFIG_AUTO_CONNECT_KEY).toBool();
         corePath = jsonObj.take(V2RAY_CONFIG_CORE_PATH_KEY).toString();
-        currentWorkInstance = jsonObj.take(V2RAY_CONFIG_CURRENT_INSTANCE_KEY).toString();
-        workInstanceArray = jsonObj.take(V2RAY_CONFIG_INSTANCE_KEY).toArray();
+        currentSection = jsonObj.take(V2RAY_CONFIG_CURRENT_SECTION_KEY).toString();
+        sectionArray = jsonObj.take(V2RAY_CONFIG_SECTION_KEY).toArray();
     }
     catch (...)
     {
@@ -72,30 +72,30 @@ const QString &ConfigService::getCorePath() const
     return corePath;
 }
 
-const QString &ConfigService::getCurrentWorkInstance() const
+const QString &ConfigService::getCurrentSection() const
 {
-    return currentWorkInstance;
+    return currentSection;
 }
 
-const WorkInstanceList &ConfigService::getWorkInstances()
+const SectionList &ConfigService::getSections()
 {
-    clearWorkInstances();
-    foreach (QJsonValue item, workInstanceArray)
+    clearSections();
+    foreach (QJsonValue item, sectionArray)
     {
         try
         {
-            QJsonObject instanceObject = item.toObject();
-            QString tag = instanceObject.take(V2RAY_CONFIG_INSTANCE_TAG_KEY).toString();
-            QString configPath = instanceObject.take(V2RAY_CONFIG_INSTANCE_CONFIG_PATH_KEY).toString();
-            WorkInstance *workInstance = new WorkInstance();
-            workInstance->insert(V2RAY_CONFIG_INSTANCE_TAG_KEY, tag);
-            workInstance->insert(V2RAY_CONFIG_INSTANCE_CONFIG_PATH_KEY, configPath);
-            workInstances.append(workInstance);
+            QJsonObject sectionObject = item.toObject();
+            QString tag = sectionObject.take(V2RAY_CONFIG_SECTION_TAG_KEY).toString();
+            QString configPath = sectionObject.take(V2RAY_CONFIG_SECTION_CONFIG_PATH_KEY).toString();
+            Section *section = new Section();
+            section->insert(V2RAY_CONFIG_SECTION_TAG_KEY, tag);
+            section->insert(V2RAY_CONFIG_SECTION_CONFIG_PATH_KEY, configPath);
+            sections.append(section);
         }
         catch (...)
         {
             continue;
         }
     }
-    return workInstances;
+    return sections;
 }

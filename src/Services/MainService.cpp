@@ -18,7 +18,7 @@
 #define V2RAY_QUES_MSG_DEFAULT_CONFIG_RELEASED "Default configuration has been released"
 #define V2RAY_QUES_MSG_WHETHER_RELOAD "Do you want to reload with it?"
 #define V2RAY_INFO_MSG_FEATURE_UNDER_DEV "Sorry, this feature is under Developing"
-#define V2RAY_TRAY_MSG_WORK_INSTANCE_CHANGE "V2Ray work instance has changed to"
+#define V2RAY_TRAY_MSG_SECTION_CHANGE "Section has changed to"
 
 MainService::MainService(int &argc, char **argv) :
     QApplication(argc, argv),
@@ -27,8 +27,8 @@ MainService::MainService(int &argc, char **argv) :
     trayIcon(new QSystemTrayIcon(this)),
     mainMenu(new QMenu()),
     switchAction(new QAction(mainMenu)),
-    workInstanceMenu(new QMenu(mainMenu)),
-    workInstanceGroup(new QActionGroup(mainMenu)),
+    sectionMenu(new QMenu(mainMenu)),
+    sectionGroup(new QActionGroup(mainMenu)),
     configAction(new QAction(mainMenu)),
     monitorAction(new QAction(mainMenu)),
     aboutAction(new QAction(mainMenu)),
@@ -77,21 +77,21 @@ void MainService::setSysStatus(const MainService::AppStatus status)
         trayIcon->setToolTip(tr("Enabled"));
         switchAction->setText(tr("Disonnect"));
         switchAction->setEnabled(true);
-        workInstanceMenu->setEnabled(true);
+        sectionMenu->setEnabled(true);
         break;
     case AppStatus::Disabled:
         trayIcon->setIcon(QIcon(V2RAY_SYS_TRAY_DISABLED_ICON_PATH));
         trayIcon->setToolTip(tr("Disabled"));
         switchAction->setText(tr("Connect"));
         switchAction->setEnabled(true);
-        workInstanceMenu->setEnabled(true);
+        sectionMenu->setEnabled(true);
         break;
     default:
         trayIcon->setIcon(QIcon(V2RAY_SYS_TRAY_ERROR_ICON_PATH));
         trayIcon->setToolTip(tr("Error"));
         switchAction->setText(tr("Connect"));
         switchAction->setEnabled(false);
-        workInstanceMenu->setEnabled(false);
+        sectionMenu->setEnabled(false);
         break;
     }
 }
@@ -109,11 +109,11 @@ void MainService::initMainMenu() const
 
     mainMenu->addSeparator();
 
-    // Work instances
+    // Sections
 
-    mainMenu->addMenu(workInstanceMenu);
-    workInstanceMenu->setTitle(tr("Work Instances"));
-    workInstanceGroup->setExclusive(true);
+    mainMenu->addMenu(sectionMenu);
+    sectionMenu->setTitle(tr("Sections"));
+    sectionGroup->setExclusive(true);
 
     mainMenu->addSeparator();
 
@@ -178,8 +178,8 @@ void MainService::loadConfiguration()
         }
         else
         {
-            // Add work instances to menu
-            loadWorkInstanceMenu();
+            // Add sections to menu
+            loadSectionMenu();
             setSysStatus(AppStatus::Disabled);
             if(checkAvailable())
             {
@@ -226,54 +226,54 @@ void MainService::loadConfiguration()
     }
 }
 
-void MainService::clearWorkInstanceMenu() const
+void MainService::clearSectionMenu() const
 {
-    foreach (QAction *action, workInstanceMenu->actions())
+    foreach (QAction *action, sectionMenu->actions())
     {
         delete action;
         action = nullptr;
     }
-    workInstanceMenu->clear();
+    sectionMenu->clear();
 }
 
-void MainService::loadWorkInstanceMenu()
+void MainService::loadSectionMenu()
 {
-    WorkInstanceList workInstances = configuration->getWorkInstances();
-    currentWorkInstance = nullptr;
+    SectionList sections = configuration->getSections();
+    currentSection = nullptr;
     QAction *configLevel = nullptr, *nameLevel = nullptr, *uniqueLevel = nullptr;
-    clearWorkInstanceMenu();
-    foreach (WorkInstance *item, workInstances)
+    clearSectionMenu();
+    foreach (Section *item, sections)
     {
-        QString tag = item->take(V2RAY_CONFIG_INSTANCE_TAG_KEY);
-        QString configPath = item->take(V2RAY_CONFIG_INSTANCE_CONFIG_PATH_KEY);
-        QVariant workInstanceVariant = QVariant::fromValue(item);
-        QAction *workInstanceAction = workInstanceMenu->addAction(tag);
-        workInstanceGroup->addAction(workInstanceAction);
-        workInstanceAction->setCheckable(true);
-        workInstanceAction->setToolTip(configPath);
-        workInstanceAction->setData(workInstanceVariant);
-        connect(workInstanceAction, &QAction::toggled, this, &MainService::selectWorkInstanceSlot);
-        // Get each level's default work instance
-        if(tag == configuration->getCurrentWorkInstance())
+        QString tag = item->take(V2RAY_CONFIG_SECTION_TAG_KEY);
+        QString configPath = item->take(V2RAY_CONFIG_SECTION_CONFIG_PATH_KEY);
+        QVariant sectionVariant = QVariant::fromValue(item);
+        QAction *sectionAction = sectionMenu->addAction(tag);
+        sectionGroup->addAction(sectionAction);
+        sectionAction->setCheckable(true);
+        sectionAction->setToolTip(configPath);
+        sectionAction->setData(sectionVariant);
+        connect(sectionAction, &QAction::toggled, this, &MainService::selectSectionSlot);
+        // Get each level's default section
+        if(tag == configuration->getCurrentSection())
         {
-            configLevel = workInstanceAction;
+            configLevel = sectionAction;
         }
         if(tag == "default")
         {
-            nameLevel = workInstanceAction;
+            nameLevel = sectionAction;
         }
     }
-    if(workInstances.count() == 1)
+    if(sections.count() == 1)
     {
-        uniqueLevel = workInstanceMenu->actions().at(0);
+        uniqueLevel = sectionMenu->actions().at(0);
     }
-    // Select each level's default work instance
+    // Select each level's default section
     (configLevel == nullptr ? (nameLevel == nullptr ? uniqueLevel : nameLevel) : configLevel)->setChecked(true);
 }
 
 bool MainService::checkAvailable() const
 {
-    return currentWorkInstance != nullptr;
+    return currentSection != nullptr;
 }
 
 void MainService::restartConnect() const
@@ -281,7 +281,7 @@ void MainService::restartConnect() const
     closeConnect();
     v2rayCore->setProgram(configuration->getCorePath());
     QStringList args;
-    args << currentWorkInstance->take(V2RAY_CONFIG_CURRENT_INSTANCE_KEY);
+    args << currentSection->take(V2RAY_CONFIG_CURRENT_SECTION_KEY);
     v2rayCore->setArguments(args);
     v2rayCore->setProcessChannelMode(QProcess :: MergedChannels);
     v2rayCore->start();
@@ -374,17 +374,17 @@ void MainService::restartSlot() const
 
 }
 
-void MainService::selectWorkInstanceSlot(bool checked)
+void MainService::selectSectionSlot(bool checked)
 {
     if(checked)
     {
         QAction *act=qobject_cast<QAction*>(sender());
-        currentWorkInstance = act->data().value<WorkInstance*>();
+        currentSection = act->data().value<Section*>();
         // restart v2ray core if it is running
         if(status == AppStatus::Enabled)
         {
             restartConnect();
-            trayIcon->showMessage("V2Ray", QString("%1 %2").arg(tr(V2RAY_TRAY_MSG_WORK_INSTANCE_CHANGE), currentWorkInstance->take(V2RAY_CONFIG_INSTANCE_TAG_KEY)));
+            trayIcon->showMessage("V2Ray", QString("%1 %2").arg(tr(V2RAY_TRAY_MSG_SECTION_CHANGE), currentSection->take(V2RAY_CONFIG_SECTION_TAG_KEY)));
         }
     }
 }

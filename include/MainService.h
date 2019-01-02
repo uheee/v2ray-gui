@@ -35,13 +35,13 @@ private:
     QSystemTrayIcon *trayIcon;
     QMenu *mainMenu;
     QAction *switchAction;
-    QMenu *workInstanceMenu;
-    QActionGroup *workInstanceGroup;
+    QMenu *sectionMenu;
+    QActionGroup *sectionGroup;
     QAction *configAction;
     QAction *monitorAction;
     QAction *aboutAction;
     QAction *exitAction;
-    WorkInstance *currentWorkInstance;
+    Section *currentSection;
 
     // Functions
     void sayHello(QSystemTrayIcon::ActivationReason reason);
@@ -49,8 +49,8 @@ private:
     AppStatus getSysStatus() const;
     void initMainMenu() const;
     void loadConfiguration();
-    void clearWorkInstanceMenu() const;
-    void loadWorkInstanceMenu();
+    void clearSectionMenu() const;
+    void loadSectionMenu();
     bool checkAvailable() const;
     void restartConnect() const;
     void closeConnect() const;
@@ -67,7 +67,7 @@ public slots:
     void aboutSlot() const;
     void quit() const;
     void restartSlot() const;
-    void selectWorkInstanceSlot(bool checked);
+    void selectSectionSlot(bool checked);
     void processStartSlot();
     void processFinishSlot(int exitCode, QProcess::ExitStatus exitStatus);
     void processErrorSlot(QProcess::ProcessError error) const;

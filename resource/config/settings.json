@@ -1,8 +1,8 @@
 {
     "autoConnect": false,
     "corePath": "v2ray",
-    "currentWorkInstance": "default",
-    "workInstances": [
+    "currentSection": "default",
+    "sections": [
         {
             "tag": "default",
             "configPath": "config.json"
