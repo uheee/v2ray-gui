@@ -4,6 +4,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonValue>
+#include <QDebug>
 #include "ConfigService.h"
 
 #define V2RAY_RESOURCE_SETTINGS_PATH            ":/config/settings.json"

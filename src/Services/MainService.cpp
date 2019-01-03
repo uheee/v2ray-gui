@@ -8,7 +8,6 @@
 #include <QVariant>
 #include <QLockFile>
 #include "MainService.h"
-#include <QDebug>
 
 #define V2RAY_SETTINGS_FILE_PATH                applicationDirPath() + "/settings.json"
 #define V2RAY_SYS_TRAY_ENABLED_ICON_PATH        ":/images/enabled.png"
@@ -152,12 +151,6 @@ void MainService::loadConfiguration()
         QString loadJsonErr;
         if(!configuration->loadFromJson(V2RAY_SETTINGS_FILE_PATH, loadJsonErr))
         {
-//            if(QMessageBox::Yes ==
-//            QMessageBox::critical(nullptr, tr("Fatal Error"),
-//                    QString("%1\n%2")
-//                    .arg(loadJsonErr,
-//                            tr("Do you want to start with the default configuration?")),
-//                            QMessageBox::Yes|QMessageBox::No))
             if(showMsgBox(QMessageBox::Critical, QString("%1\n%2").arg(loadJsonErr, tr(V2RAY_ERR_MSG_START_WITH_DEFAULT)),
                           QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes) == QMessageBox::Yes)
             {
@@ -197,23 +190,12 @@ void MainService::loadConfiguration()
     }
     else
     {
-//        if(QMessageBox::Yes ==
-//        QMessageBox::critical(nullptr, tr("Fatal Error"),
-//                QString("%1\n%2")
-//                .arg(tr("No configuration file found."),
-//                     tr("Do you want to start with the default configuration?")),
-//                        QMessageBox::Yes|QMessageBox::No))
         if(showMsgBox(QMessageBox::Critical, QString("%1\n%2").arg(V2RAY_ERR_MSG_NO_CONFIG_FILE, tr(V2RAY_ERR_MSG_START_WITH_DEFAULT)),
                       QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes) == QMessageBox::Yes)
         {
             // Release resource json file
             if(configuration->releaseDefaultJson(V2RAY_SETTINGS_FILE_PATH))
             {
-//                if(QMessageBox::Yes == QMessageBox::information(nullptr, tr("Reload"),
-//                        QString("%1\n%2")
-//                        .arg(tr("Default configuration has been released."),
-//                                tr("Do you want to reload with it?")),
-//                                QMessageBox::Yes|QMessageBox::No))
                 if(showMsgBox(QMessageBox::Question, QString("%1\n%2").arg(V2RAY_QUES_MSG_DEFAULT_CONFIG_RELEASED, tr(V2RAY_QUES_MSG_WHETHER_RELOAD)),
                               QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes) == QMessageBox::Yes)
                 {

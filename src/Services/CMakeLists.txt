@@ -2,4 +2,4 @@ CMAKE_MINIMUM_REQUIRED(VERSION 3.13)
 
 PROJECT(V2Ray-GUI)
 
-TARGET_SOURCES(${PROJECT_NAME} PRIVATE MainService.cpp ConfigService.cpp)
+TARGET_SOURCES(${PROJECT_NAME} PRIVATE MainService.cpp ConfigService.cpp RunGuard.cpp)
