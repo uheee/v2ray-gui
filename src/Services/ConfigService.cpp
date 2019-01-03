@@ -15,14 +15,6 @@ ConfigService::ConfigService(QObject *parent) : QObject(parent)
 
 ConfigService::~ConfigService() = default;
 
-void ConfigService::clearSections()
-{
-    foreach (Section *item, sections)
-    {
-        delete item;
-    }
-}
-
 ConfigService *ConfigService::getInstance(QObject *parent)
 {
     static ConfigService instance(parent);
@@ -79,7 +71,6 @@ const QString &ConfigService::getCurrentSection() const
 
 const SectionList &ConfigService::getSections()
 {
-    clearSections();
     foreach (QJsonValue item, sectionArray)
     {
         try
@@ -87,7 +78,7 @@ const SectionList &ConfigService::getSections()
             QJsonObject sectionObject = item.toObject();
             QString tag = sectionObject.take(V2RAY_CONFIG_SECTION_TAG_KEY).toString();
             QString configPath = sectionObject.take(V2RAY_CONFIG_SECTION_CONFIG_PATH_KEY).toString();
-            Section *section = new Section();
+            SectionPtr section(new Section());
             section->insert(V2RAY_CONFIG_SECTION_TAG_KEY, tag);
             section->insert(V2RAY_CONFIG_SECTION_CONFIG_PATH_KEY, configPath);
             sections.append(section);

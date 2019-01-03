@@ -1,6 +1,7 @@
 #ifndef CONFIGSERVICE_H
 #define CONFIGSERVICE_H
 
+#include <memory>
 #include <QList>
 #include <QMap>
 #include <QObject>
@@ -15,7 +16,8 @@
 #define V2RAY_CONFIG_SECTION_CONFIG_PATH_KEY    "configPath"
 
 typedef QMap<QString, QString> Section;
-typedef QList<Section*> SectionList;
+typedef std::shared_ptr<Section> SectionPtr;
+typedef QList<SectionPtr> SectionList;
 
 class ConfigService : QObject
 {
@@ -43,6 +45,6 @@ private:
     SectionList sections;
 };
 
-Q_DECLARE_METATYPE(Section*)
+Q_DECLARE_METATYPE(SectionPtr)
 
 #endif // CONFIGSERVICE_H

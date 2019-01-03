@@ -41,7 +41,7 @@ private:
     QAction *monitorAction;
     QAction *aboutAction;
     QAction *exitAction;
-    Section *currentSection;
+    SectionPtr currentSection;
 
     // Functions
     void sayHello(QSystemTrayIcon::ActivationReason reason);

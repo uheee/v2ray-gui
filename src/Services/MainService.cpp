@@ -239,10 +239,10 @@ void MainService::clearSectionMenu() const
 void MainService::loadSectionMenu()
 {
     SectionList sections = configuration->getSections();
-    currentSection = nullptr;
+    currentSection.reset();
     QAction *configLevel = nullptr, *nameLevel = nullptr, *uniqueLevel = nullptr;
     clearSectionMenu();
-    foreach (Section *item, sections)
+    foreach (SectionPtr item, sections)
     {
         QString tag = item->take(V2RAY_CONFIG_SECTION_TAG_KEY);
         QString configPath = item->take(V2RAY_CONFIG_SECTION_CONFIG_PATH_KEY);
@@ -273,7 +273,7 @@ void MainService::loadSectionMenu()
 
 bool MainService::checkAvailable() const
 {
-    return currentSection != nullptr;
+    return currentSection.get() != nullptr;
 }
 
 void MainService::restartConnect() const
@@ -379,7 +379,7 @@ void MainService::selectSectionSlot(bool checked)
     if(checked)
     {
         QAction *act=qobject_cast<QAction*>(sender());
-        currentSection = act->data().value<Section*>();
+        currentSection = act->data().value<SectionPtr>();
         // restart v2ray core if it is running
         if(status == AppStatus::Enabled)
         {
