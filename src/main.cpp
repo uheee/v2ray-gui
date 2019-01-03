@@ -1,9 +1,10 @@
 #include <QFile>
 #include <QLockFile>
+#include <QDir>
 #include "MainService.h"
 #include "ConfigForm.h"
 
-#define V2RAY_LOCK_FILE ".v2ray-gui-lock"
+#define V2RAY_LOCK_FILE QDir::homePath() + "/v2ray-gui-lock"
 
 int main(int argc, char *argv[])
 {
