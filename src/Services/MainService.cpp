@@ -23,7 +23,6 @@
 
 MainService::MainService(int &argc, char **argv) :
     QApplication(argc, argv),
-    configuration(ConfigService::getInstance(this)),
     v2rayCore(new QProcess(this)),
     trayIcon(new QSystemTrayIcon(this)),
     mainMenu(new QMenu()),
@@ -234,7 +233,8 @@ void MainService::clearSectionMenu() const
         delete action;
         action = nullptr;
     }
-    sectionMenu->clear();
+    sectionGroup->actions().clear();
+    sectionMenu->actions().clear();
 }
 
 void MainService::loadSectionMenu()
@@ -270,6 +270,7 @@ void MainService::loadSectionMenu()
     }
     // Select each level's default section
     (configLevel == nullptr ? (nameLevel == nullptr ? uniqueLevel : nameLevel) : configLevel)->setChecked(true);
+    configLevel = nameLevel = uniqueLevel = nullptr;
 }
 
 bool MainService::checkAvailable() const

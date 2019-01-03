@@ -30,7 +30,7 @@ public:
 private:
     // Properties
     AppStatus status;
-    ConfigService *configuration;
+    ConfigService *configuration = ConfigService::getInstance();
     QProcess *v2rayCore;
     QSystemTrayIcon *trayIcon;
     QMenu *mainMenu;
