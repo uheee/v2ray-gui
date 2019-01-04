@@ -7,6 +7,7 @@
 #include <QFileInfo>
 #include <QVariant>
 #include <QLockFile>
+#include <QDebug>
 #include "MainService.h"
 
 #define V2RAY_SETTINGS_FILE_PATH                applicationDirPath() + "/settings.json"
@@ -43,15 +44,15 @@ MainService::MainService(int &argc, char **argv) :
     // Initialize Main Menu
     initMainMenu();
 
-    // Load Configuration and flag status
-    loadConfiguration();
-
     // Binding signals and slots
     connect(trayIcon, &QSystemTrayIcon::activated, this, &MainService::sayHello);
     connect(v2rayCore, &QProcess::started, this, &MainService::processStartSlot);
     connect(v2rayCore, static_cast<void(QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished),
             this, &MainService::processFinishSlot);
     connect(v2rayCore, &QProcess::errorOccurred, this, &MainService::processErrorSlot);
+
+    // Load Configuration and flag status
+    loadConfiguration();
 }
 
 MainService::~MainService()
@@ -179,7 +180,7 @@ void MainService::loadConfiguration()
                 switchAction->setEnabled(true);
                 if(configuration->getAutoConnect())
                 {
-                    switchSlot();
+                    restartConnect();
                 }
             }
             else
