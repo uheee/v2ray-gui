@@ -289,6 +289,7 @@ int MainService::showMsgBox(const QMessageBox::Icon type, const QString &text,
     msgBox.setText(text);
     msgBox.setStandardButtons(buttons);
     msgBox.setDefaultButton(defaultButton);
+    msgBox.setParent(QDesktopWidget().screen());
     switch (type)
     {
     case QMessageBox::Question:
@@ -307,8 +308,6 @@ int MainService::showMsgBox(const QMessageBox::Icon type, const QString &text,
         msgBox.setWindowTitle("Unknown");
         break;
     }
-    msgBox.show();
-    msgBox.move((desktop()->width() - msgBox.width()) / 2, (desktop()->height() - msgBox.height()) / 2);
     return msgBox.exec();
 }
 
